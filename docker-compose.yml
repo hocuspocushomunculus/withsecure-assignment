@@ -1,0 +1,38 @@
+version: '3.9'
+
+services:
+  signup_service:
+    build: ./signup_service
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    volumes:
+      - ./signup_service/:/app/
+    ports:
+      - 8001:8000
+  quote_service:
+    build: ./quote_service
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    # volumes:
+    #   - ./quote_service/:/app/
+    ports:
+      - 8002:8000
+    environment:
+      - SIGNUP_SERVICE_URL=http://signup_service:8000/api/v1/signupsrv
+  weather_service:
+    build: ./weather_service
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    # volumes:
+    #   - ./weather_service/:/app/
+    ports:
+      - 8003:8000
+    environment:
+      - SIGNUP_SERVICE_URL=http://signup_service:8000/api/v1/signupsrv
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx_config.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - signup_service
+      - quote_service
+      - weather_service
