@@ -1,0 +1,4 @@
+FROM python:3.9
+
+# Install dependencies
+RUN python3 -m pip install robotframework robotframework-requests
