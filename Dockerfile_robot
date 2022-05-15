@@ -1,4 +1,8 @@
 FROM python:3.9
 
+WORKDIR /opt/robot_tests
+
+COPY ./requirements.txt .
+
 # Install dependencies
-RUN python3 -m pip install robotframework robotframework-requests
+RUN python3 -m pip install -r requirements.txt

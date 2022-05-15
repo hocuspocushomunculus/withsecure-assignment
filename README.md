@@ -12,6 +12,8 @@ Repository containing the write-up for the WithSecure Assignment:
 
 # Repository tree
 
+Robot test results have also been uploaded: [results.zip](results.zip)
+
 ```text
 .
 ├── assignment_readme.md
@@ -26,18 +28,18 @@ Repository containing the write-up for the WithSecure Assignment:
 │   ├── dockerfile
 │   └── requirements.txt
 ├── README.md
+├── requirements.txt
+├── results.zip
 ├── robot_tests
 │   ├── resources
-│   │   ├── lib_common.py
-│   │   ├── lib_quotesrv.py
-│   │   ├── lib_signupsrv.py
-│   │   ├── lib_weathersrv.py
+│   │   ├── keywords.py
 │   │   └── variables.py
 │   ├── results
 │   │   ├── log.html
 │   │   ├── output.xml
 │   │   └── report.html
 │   └── tests
+│       ├── common.robot
 │       ├── quotesrv_api.robot
 │       ├── signupsrv_api.robot
 │       └── weathersrv_api.robot
@@ -91,7 +93,10 @@ For inspecting `user` database during manual and exploratory testing
 -- 2. List all users
 SELECT * FROM user;
 
--- 3. Clean up user (example)
+-- 3. Query users matching certain conditions
+SELECT * FROM user WHERE name="test" AND passwd="test" AND token="xyz";
+
+-- 4. Clean up user (example)
 DELETE FROM user WHERE name=="test";
 ```
 
@@ -130,13 +135,39 @@ DELETE FROM user WHERE name=="test";
 
 # Run API tests
 
-## 1. Build Docker container for robot tests
+Everything has been integrated into the [run_robot_tests.sh](run_robot_tests.sh) script:
+
+```bash
+bash ./run_robot_tests.sh
+```
+
+Detailed explanation of what's being done:
+
+## 1. Stop and remove previous microservices (running as Docker containers)
+
+```bash
+docker ps | grep -o "$(basename $PWD)-.*" | xargs -I container_name docker container rm -f container_name
+
+```
+
+## 2. Initialize user database (as explained [here](#1-major-bug-when-starting-docker-containers-as-is)) and start microservices
+
+```bash
+touch signup_service/be_db.db
+docker compose up -d
+```
+
+## 3. Build Docker container for robot tests
 
 ```bash
 docker build -f ./Dockerfile_robot -t withsecure_robot_tests .
 ```
 
-## 2. Run robot tests in a Docker container
+## 4. Run robot tests in a Docker container
+
+We'll be also mounting:
+- the robot tests
+- the user database file we're going to operate on
 
 ```bash
 export WORKSPACE="/opt/robot_tests" && \
@@ -145,11 +176,14 @@ docker run --rm -it \
 --network=host \
 -w $WORKSPACE/ \
 -v $(pwd)/robot_tests:$WORKSPACE/ \
+-v $(pwd)/signup_service/be_db.db:/opt/be_db.db \
 withsecure_robot_tests \
 robot --outputdir $WORKSPACE/results \
---loglevel INFO \
+--loglevel DEBUG \
 --pythonpath ":.:resources:" ./tests/
 ```
+
+Optionally we could add `-e bug` argument to the robot command to exclude the test cases tagged as `bug`.
 
 # Bug report
 
